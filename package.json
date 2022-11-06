@@ -1,0 +1,27 @@
+{
+  "name": "portfolio-adapters",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:twotwentythree/portfolio-adapters.git",
+  "license": "MIT",
+  "scripts": {
+    "test-porfolio": "ts-node ./test.ts",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.9",
+    "dotenv": "^16.0.3",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.7.1",
+    "ts-node": "^10.9.1"
+  },
+  "dependencies": {
+    "@defillama/sdk": "^2.3.122",
+    "ethers": "^5.7.2",
+    "typescript": "^4.9.2-rc"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  }
+}
