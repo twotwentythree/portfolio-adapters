@@ -1,6 +1,8 @@
 import 'dotenv/config'
 
 import { humanizeNumber } from '@defillama/sdk/build/computeTVL/humanizeNumber'
+import _ from 'lodash'
+import got from 'got'
 
 import { GetEventsReturns, GetPorfolioReturns } from './adapterTypes'
 
@@ -26,14 +28,33 @@ const address = process.argv[3]
     },
   ]
 
-  const chainOutputs: GetPorfolioReturns[] = await adapter.getPorfolio(chains, address)
+  const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
+
+  const { coins } = await got(
+    `https://coins.llama.fi/prices/current/${_.flattenDeep([
+      chainOutputs.map((x) => x.supplied.map((y) => `${x.chainName}:${y.address}`)),
+    ]).join(',')}`
+  ).json<{
+    coins: {
+      [key: string]: {
+        decimals: number
+        symbol: string
+        price: number
+        timestamp: number
+        confidence: number
+      }
+    }
+  }>()
 
   chainOutputs.forEach((chainOutput) => {
     console.log('--- ethereum ---')
 
     chainOutput.supplied.forEach((supplied) => {
       if (supplied.balance !== '0') {
-        console.log(`${supplied.address}: ${humanizeNumber(Number(supplied.balance) / 1e18)}`)
+        const coin = coins[`${chainOutput.chainName}:${supplied.address}`]
+        const balance = Number(supplied.balance) / 10 ** coin.decimals
+        const value = balance * coin.price
+        console.log(`${coin.symbol.padEnd(30)} ${humanizeNumber(balance).padEnd(30)} $${humanizeNumber(value)}`)
       }
     })
   })
