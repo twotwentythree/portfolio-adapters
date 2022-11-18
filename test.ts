@@ -32,7 +32,11 @@ const address = process.argv[3]
 
   const { coins } = await got(
     `https://coins.llama.fi/prices/current/${_.flattenDeep([
-      chainOutputs.map((x) => x.supplied.map((y) => `${x.chainName}:${y.address}`)),
+      chainOutputs.map((x) =>
+        x.supplied.map((y) =>
+          Array.isArray(y) ? y.map((z) => `${x.chainName}:${z.address}`) : `${x.chainName}:${y.address}`
+        )
+      ),
     ]).join(',')}`
   ).json<{
     coins: {
@@ -49,13 +53,15 @@ const address = process.argv[3]
   chainOutputs.forEach((chainOutput) => {
     console.log('--- ethereum ---')
 
-    chainOutput.supplied.forEach((supplied) => {
-      if (supplied.balance !== '0') {
-        const coin = coins[`${chainOutput.chainName}:${supplied.address}`]
-        const balance = Number(supplied.balance) / 10 ** coin.decimals
-        const value = balance * coin.price
-        console.log(`${coin.symbol.padEnd(30)} ${humanizeNumber(balance).padEnd(30)} $${humanizeNumber(value)}`)
-      }
+    chainOutput.supplied.forEach((s) => {
+      ;(Array.isArray(s) ? s : [s]).forEach((supplied) => {
+        if (supplied.balance !== '0') {
+          const coin = coins[`${chainOutput.chainName}:${supplied.address}`]
+          const balance = Number(supplied.balance) / 10 ** coin.decimals
+          const value = balance * coin.price
+          console.log(`${coin.symbol.padEnd(30)} ${humanizeNumber(balance).padEnd(30)} $${humanizeNumber(value)}`)
+        }
+      })
     })
   })
 

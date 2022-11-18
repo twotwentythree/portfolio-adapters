@@ -1,3 +1,8 @@
+type Token = {
+  address: string
+  balance: string
+}
+
 export type GetEventsReturns = {
   chainName: 'ethereum'
   address: string
@@ -17,10 +22,7 @@ export type GetPorfolioChainParam = {
 
 export type GetPorfolioReturns = {
   chainName: string
-  supplied: {
-    address: string
-    balance: string
-  }[]
+  supplied: Token[] | Token[][]
 }[]
 
 export type GetPorfolio = (chains: GetPorfolioChainParam, account: string) => GetPorfolioReturns
