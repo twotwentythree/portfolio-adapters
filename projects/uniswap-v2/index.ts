@@ -3,83 +3,111 @@ import BigNumber from 'bignumber.js'
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
-import abi from './abi.json'
+import pairAbi from './abis/pair.json'
+import factoryAbi from './abis/factory.json'
 
 const factory = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f'
 
 export async function getEvents(): Promise<GetEventsReturns> {
-  return [
-    {
-      chainName: 'ethereum',
-      address: '0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc', // USDC/WETh pair
-      events: [
-        {
-          abi: 'Mint(address,uint,uint)',
-          accountIndex: 0,
-        },
-        {
-          abi: 'Transfer(address,address,uint)',
-          accountIndex: 1,
-        },
-      ],
-    },
-  ]
+  const pairsLength = (
+    await api.abi.call({
+      target: factory,
+      abi: factoryAbi.find((x) => x.name === 'allPairsLength'),
+    })
+  ).output
+
+  const pairAddresses = (
+    await api.abi.multiCall({
+      abi: factoryAbi.find((x) => x.name === 'allPairs'),
+      calls: Array.from({ length: Number(pairsLength) }).map((_, i) => ({
+        target: factory,
+        params: [i],
+      })),
+    })
+  ).output.map((x) => x.output)
+
+  return pairAddresses.map((pairAddress) => ({
+    chainName: 'ethereum',
+    address: pairAddress,
+    events: [
+      {
+        abi: 'Mint(address,uint,uint)',
+        accountIndex: 0,
+      },
+      {
+        abi: 'Transfer(address,address,uint)',
+        accountIndex: 1,
+      },
+    ],
+  }))
 }
 
 export async function getPorfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {
   return Promise.all(
-    chains.map(async (chain) => ({
-      chainName: chain.chainName,
-      supplied: await Promise.all(
-        chain.addresses.map(async (address) => {
-          const { _reserve0: reserve0, _reserve1: reserve1 } = (
-            await api.abi.call({
-              target: address,
-              abi: abi.find((x) => x.name === 'getReserves'),
-            })
-          ).output
-
-          const token0 = (
-            await api.abi.call({
-              target: address,
-              abi: abi.find((x) => x.name === 'token0'),
-            })
-          ).output
-
-          const token1 = (
-            await api.abi.call({
-              target: address,
-              abi: abi.find((x) => x.name === 'token1'),
-            })
-          ).output
-
-          const totalSupply = (
-            await api.abi.call({
-              target: address,
-              abi: abi.find((x) => x.name === 'totalSupply'),
-            })
-          ).output
-
-          const liquidity = (
-            await api.abi.call({
-              target: address,
-              abi: abi.find((x) => x.name === 'balanceOf'),
-              params: [account],
-            })
-          ).output
-
-          return [
-            {
-              address: token0,
-              balance: new BigNumber(liquidity).multipliedBy(reserve0).div(totalSupply).toString(),
-            },
-            {
-              address: token1,
-              balance: new BigNumber(liquidity).multipliedBy(reserve1).div(totalSupply).toString(),
-            },
-          ]
+    chains.map(async (chain): Promise<GetPorfolioReturns[0]> => {
+      const balanceOfResults = (
+        await api.abi.multiCall({
+          abi: pairAbi.find((x) => x.name === 'balanceOf'),
+          calls: chain.addresses.map((address) => ({
+            target: address,
+            params: [account],
+          })),
         })
-      ),
-    }))
+      ).output
+
+      const pairsWithLiquidity = balanceOfResults.filter((x) => x.output !== '0')
+      const liquidities = pairsWithLiquidity.map((x) => x.output)
+      const pairs = pairsWithLiquidity.map((x) => x.input.target)
+
+      const reserves = (
+        await api.abi.multiCall({
+          abi: pairAbi.find((x) => x.name === 'getReserves'),
+          calls: pairs.map((pair) => ({
+            target: pair,
+          })),
+        })
+      ).output.map((x) => ({ reserve0: x.output._reserve0, reserve1: x.output._reserve1 }))
+
+      const token0s = (
+        await api.abi.multiCall({
+          abi: pairAbi.find((x) => x.name === 'token0'),
+          calls: pairs.map((pair) => ({
+            target: pair,
+          })),
+        })
+      ).output.map((x) => x.output)
+
+      const token1s = (
+        await api.abi.multiCall({
+          abi: pairAbi.find((x) => x.name === 'token1'),
+          calls: pairs.map((pair) => ({
+            target: pair,
+          })),
+        })
+      ).output.map((x) => x.output)
+
+      const totalSupplies = (
+        await api.abi.multiCall({
+          abi: pairAbi.find((x) => x.name === 'totalSupply'),
+          calls: pairs.map((pair) => ({
+            target: pair,
+          })),
+        })
+      ).output.map((x) => x.output)
+
+      return {
+        chainName: chain.chainName,
+        supplied: liquidities.map((liquidity, i) => [
+          {
+            address: token0s[i],
+            balance: new BigNumber(liquidity).multipliedBy(reserves[i].reserve0).div(totalSupplies[i]).toString(),
+          },
+          {
+            address: token1s[i],
+            balance: new BigNumber(liquidity).multipliedBy(reserves[i].reserve1).div(totalSupplies[i]).toString(),
+          },
+        ]),
+      }
+    })
   )
 }
