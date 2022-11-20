@@ -68,6 +68,10 @@ export async function getEvents(): Promise<GetEventsReturns> {
       chain: 'celo',
       factory: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4',
     },
+    {
+      chain: 'fantom',
+      factory: '0xc35DADB65012eC5796536bD9864eD8773aBc74C4',
+    },
   ])
 }
 
