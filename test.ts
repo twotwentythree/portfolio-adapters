@@ -6,7 +6,7 @@ import { humanizeNumber } from '@defillama/sdk/build/computeTVL/humanizeNumber'
 import { abi } from '@defillama/sdk/build/api'
 import { Chain } from '@defillama/sdk/build/general'
 
-import { GetEventsReturns, GetPorfolioReturns } from './adapterTypes'
+import { GetEventsReturns, GetPorfolioReturns, GetPorfolioChainParam } from './adapterTypes'
 
 const project = process.argv[2]
 const address = process.argv[3]
@@ -14,21 +14,21 @@ const address = process.argv[3]
 ;(async () => {
   const adapter = await import(`./projects/${project}`)
 
-  const events: GetEventsReturns[] = await adapter.getEvents()
+  const events: GetEventsReturns = await adapter.getEvents()
 
   // TODO
   // if (address == undefined) {
 
   // }
 
-  const chains = [
-    {
-      chainId: 1,
-      chainName: 'ethereum',
-      // @ts-ignore
+  const chains: GetPorfolioChainParam = Object.values(_.groupBy(events, (e) => e.chainName)).map(
+    (events): GetPorfolioChainParam[0] => ({
+      chainName: events[0].chainName,
       addresses: events.map((x) => x.address),
-    },
-  ]
+    })
+  )
+
+  console.log(chains)
 
   const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
 
@@ -41,7 +41,7 @@ const address = process.argv[3]
   )
 
   chainOutputs.forEach((chainOutput) => {
-    console.log('--- ethereum ---')
+    console.log(`--- ${chainOutput.chainName} ---`)
 
     chainOutput.supplied.forEach((s) => {
       ;(Array.isArray(s) ? s : [s]).forEach((supplied) => {
@@ -116,7 +116,7 @@ async function getCoins(ids: (string | string[])[][]): Promise<{
         symbol,
         price: 0,
         timestamp: Math.floor(new Date().getTime() / 1000),
-        confidence: 1,
+        confidence: 0,
       }
     })
   )

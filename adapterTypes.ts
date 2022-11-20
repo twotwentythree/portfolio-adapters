@@ -17,7 +17,6 @@ export type GetEventsReturns = {
 export type GetAccountsReturns = string[]
 
 export type GetPorfolioChainParam = {
-  chainId: number
   chainName: Chain
   addresses: string[]
 }[]
