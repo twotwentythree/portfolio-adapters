@@ -1,10 +1,12 @@
+import type { Chain } from '@defillama/sdk/build/general'
+
 type Token = {
   address: string
   balance: string
 }
 
 export type GetEventsReturns = {
-  chainName: 'ethereum'
+  chainName: Chain
   address: string
   events: {
     abi: string
@@ -16,12 +18,12 @@ export type GetAccountsReturns = string[]
 
 export type GetPorfolioChainParam = {
   chainId: number
-  chainName: string
+  chainName: Chain
   addresses: string[]
 }[]
 
 export type GetPorfolioReturns = {
-  chainName: string
+  chainName: Chain
   supplied: Token[] | Token[][]
 }[]
 

@@ -1,8 +1,10 @@
 import 'dotenv/config'
 
-import { humanizeNumber } from '@defillama/sdk/build/computeTVL/humanizeNumber'
 import _ from 'lodash'
 import got from 'got'
+import { humanizeNumber } from '@defillama/sdk/build/computeTVL/humanizeNumber'
+import { abi } from '@defillama/sdk/build/api'
+import { Chain } from '@defillama/sdk/build/general'
 
 import { GetEventsReturns, GetPorfolioReturns } from './adapterTypes'
 
@@ -30,25 +32,13 @@ const address = process.argv[3]
 
   const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
 
-  const { coins } = await got(
-    `https://coins.llama.fi/prices/current/${_.flattenDeep([
-      chainOutputs.map((x) =>
-        x.supplied.map((y) =>
-          Array.isArray(y) ? y.map((z) => `${x.chainName}:${z.address}`) : `${x.chainName}:${y.address}`
-        )
-      ),
-    ]).join(',')}`
-  ).json<{
-    coins: {
-      [key: string]: {
-        decimals: number
-        symbol: string
-        price: number
-        timestamp: number
-        confidence: number
-      }
-    }
-  }>()
+  const coins = await getCoins(
+    chainOutputs.map((x) =>
+      x.supplied.map((y) =>
+        Array.isArray(y) ? y.map((z) => `${x.chainName}:${z.address}`) : `${x.chainName}:${y.address}`
+      )
+    )
+  )
 
   chainOutputs.forEach((chainOutput) => {
     console.log('--- ethereum ---')
@@ -67,3 +57,69 @@ const address = process.argv[3]
 
   console.log('')
 })()
+
+async function getCoins(ids: (string | string[])[][]): Promise<{
+  [key: string]: {
+    decimals: number
+    symbol: string
+    price: number
+    timestamp: number
+    confidence: number
+  }
+}> {
+  const uniqIds = _.uniq(_.flattenDeep(ids))
+
+  const coins = _.merge(
+    {},
+    ...(await Promise.all(
+      _.chunk(uniqIds, 100).map(async (ids) => {
+        const { coins } = await got(`https://coins.llama.fi/prices/current/${ids.join(',')}`).json<{
+          coins: {
+            [key: string]: {
+              decimals: number
+              symbol: string
+              price: number
+              timestamp: number
+              confidence: number
+            }
+          }
+        }>()
+
+        return coins
+      })
+    ))
+  )
+
+  const coinsNotFound = uniqIds.filter((id) => !coins[id])
+  await Promise.all(
+    coinsNotFound.map(async (coin) => {
+      const [chain, address] = coin.split(':')
+
+      const symbol = await (
+        await abi.call({
+          chain: chain as Chain,
+          target: address,
+          abi: 'erc20:symbol',
+        })
+      ).output
+
+      const decimals = await (
+        await abi.call({
+          chain: chain as Chain,
+          target: address,
+          abi: 'erc20:decimals',
+        })
+      ).output
+
+      coins[coin] = {
+        decimals,
+        symbol,
+        price: 0,
+        timestamp: Math.floor(new Date().getTime() / 1000),
+        confidence: 1,
+      }
+    })
+  )
+
+  return coins
+}
