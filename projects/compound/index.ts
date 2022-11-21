@@ -1,6 +1,7 @@
 import { api } from '@defillama/sdk'
 
 const abi = require('./abi.json')
+const lens = require('./lens.json')
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
@@ -82,6 +83,10 @@ export function getEvents(): GetEventsReturns {
         abi: 'Transfer(address,address,uint256)',
         accountIndex: 1,
       },
+      {
+        abi: 'Borrow(address,address,uint256)',
+        accountIndex: 0,
+      },
     ],
   }))
 }
@@ -115,6 +120,67 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
             }
           })
         ),
+        borrowed: await Promise.all(
+          markets.map(async (market) => {
+            const balance = (
+              await api.abi.call({
+                target: '0xdCbDb7306c6Ff46f77B349188dC18cEd9DF30299',
+                abi: lens['cTokenBalances'],
+                params: [market.cToken, account],
+              })
+            ).output.borrowBalanceCurrent
+
+            return {
+              address: market.underlying,
+              balance: balance,
+            }
+          })
+        ),
+        healthFactor: await (async () => {
+          const metadata = (
+            await api.abi.call({
+              target: '0xdCbDb7306c6Ff46f77B349188dC18cEd9DF30299',
+              abi: lens['cTokenMetadataAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken)],
+            })
+          ).output
+          const underlyingPrices = (
+            await api.abi.call({
+              target: '0xdCbDb7306c6Ff46f77B349188dC18cEd9DF30299',
+              abi: lens['cTokenUnderlyingPriceAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken)],
+            })
+          ).output
+          const borrowBalances = (
+            await api.abi.call({
+              target: '0xdCbDb7306c6Ff46f77B349188dC18cEd9DF30299',
+              abi: lens['cTokenBalancesAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken), account],
+            })
+          ).output
+
+          return Promise.all(
+            markets.map(async (market) => {
+              const collateralFactor = metadata.find(
+                (metadata: { cToken: string }) => metadata.cToken === market.cToken
+              )?.collateralFactorMantissa
+              const underlyingPrice = underlyingPrices.find(
+                (metadata: { cToken: string }) => metadata.cToken === market.cToken
+              )?.underlyingPrice
+              const borrowBalance = borrowBalances.find(
+                (metadata: { cToken: string }) => metadata.cToken === market.cToken
+              )?.borrowBalanceCurrent
+
+              if (collateralFactor === undefined || underlyingPrice === undefined || borrowBalance == 0) {
+                return undefined
+              }
+              return (underlyingPrice * collateralFactor) / borrowBalance
+            })
+          )
+        })(),
       }
     })
   )

@@ -21,6 +21,11 @@ export type GetPorfolioReturns = {
     address: string
     balance: string
   }[]
+  borrowed?: {
+    address: string
+    balance: string
+  }[]
+  healthFactor?: (number | undefined)[]
 }[]
 
 export type GetPorfolio = (chains: GetPorfolioChainParam, account: string) => GetPorfolioReturns
