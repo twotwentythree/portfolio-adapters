@@ -84,7 +84,7 @@ export function getEvents(): GetEventsReturns {
         accountIndex: 1,
       },
       {
-        abi: 'Borrow(address,address,uint256)',
+        abi: 'Borrow(address,uint256,uint256,uint256)',
         accountIndex: 0,
       },
     ],
@@ -162,24 +162,35 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
             })
           ).output
 
-          return Promise.all(
-            markets.map(async (market) => {
-              const collateralFactor = metadata.find(
-                (metadata: { cToken: string }) => metadata.cToken === market.cToken
-              )?.collateralFactorMantissa
-              const underlyingPrice = underlyingPrices.find(
-                (metadata: { cToken: string }) => metadata.cToken === market.cToken
-              )?.underlyingPrice
-              const borrowBalance = borrowBalances.find(
-                (metadata: { cToken: string }) => metadata.cToken === market.cToken
-              )?.borrowBalanceCurrent
+          const sumOfUnderlying = markets.reduce((sum, market) => {
+            const collateralFactor = metadata.find(
+              (metadata: { cToken: string }) => metadata.cToken === market.cToken
+            )?.collateralFactorMantissa
+            const underlyingPrice = underlyingPrices.find(
+              (metadata: { cToken: string }) => metadata.cToken === market.cToken
+            )?.underlyingPrice
+            const balanceOfUnderlying = borrowBalances.find(
+              (metadata: { cToken: string }) => metadata.cToken === market.cToken
+            )?.balanceOfUnderlying
+            const balance = balanceOfUnderlying * underlyingPrice * collateralFactor
+            return balance ? sum + balance : sum + 0
+          }, 0)
 
-              if (collateralFactor === undefined || underlyingPrice === undefined || borrowBalance == 0) {
-                return undefined
-              }
-              return (underlyingPrice * collateralFactor) / borrowBalance
-            })
-          )
+          const sumOfBalance = markets.reduce((sum, market) => {
+            const underlyingPrice = underlyingPrices.find(
+              (metadata: { cToken: string }) => metadata.cToken === market.cToken
+            )?.underlyingPrice
+            const borrowBalance = borrowBalances.find(
+              (metadata: { cToken: string }) => metadata.cToken === market.cToken
+            )?.borrowBalance
+            const balance = borrowBalance * underlyingPrice
+            return balance ? sum + balance : sum + 0
+          }, 0)
+
+          if (!sumOfBalance || !sumOfUnderlying) {
+            return 0
+          }
+          return sumOfUnderlying / sumOfBalance
         })(),
       }
     })

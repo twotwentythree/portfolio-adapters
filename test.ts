@@ -36,7 +36,11 @@ const address = process.argv[3]
         console.log(`${supplied.address}: ${humanizeNumber(Number(supplied.balance) / 1e18)}`)
       }
     })
+
+    chainOutput.borrowed.forEach((borrowed) => {
+      console.log(`${borrowed.address}: ${humanizeNumber(Number(borrowed.balance) / 1e18)}`)
+    })
   })
 
-  console.log('')
+  console.log(chainOutputs)
 })()
