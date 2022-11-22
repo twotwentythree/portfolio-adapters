@@ -7,46 +7,40 @@ import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from
 import pairAbi from './abis/pair.json'
 import factoryAbi from './abis/factory.json'
 
-export async function getUniswapEvents(configs: { chain: Chain; factory: string }[]): Promise<GetEventsReturns> {
-  return (
-    await Promise.all(
-      configs.map(async (config): Promise<GetEventsReturns> => {
-        const pairsLength = (
-          await api.abi.call({
-            chain: config.chain,
-            target: config.factory,
-            abi: factoryAbi.find((x) => x.name === 'allPairsLength'),
-          })
-        ).output
+export async function getUniswapEvents(chain: Chain, factory: string): Promise<GetEventsReturns> {
+  const pairsLength = (
+    await api.abi.call({
+      chain: chain,
+      target: factory,
+      abi: factoryAbi.find((x) => x.name === 'allPairsLength'),
+    })
+  ).output
 
-        const pairAddresses = (
-          await api.abi.multiCall({
-            chain: config.chain,
-            abi: factoryAbi.find((x) => x.name === 'allPairs'),
-            calls: Array.from({ length: Number(pairsLength) }).map((_, i) => ({
-              target: config.factory,
-              params: [i],
-            })),
-          })
-        ).output.map((x) => x.output)
+  const pairAddresses = (
+    await api.abi.multiCall({
+      chain: chain,
+      abi: factoryAbi.find((x) => x.name === 'allPairs'),
+      calls: Array.from({ length: Number(pairsLength) }).map((_, i) => ({
+        target: factory,
+        params: [i],
+      })),
+    })
+  ).output.map((x) => x.output)
 
-        return pairAddresses.map((pairAddress) => ({
-          chainName: config.chain,
-          address: pairAddress,
-          events: [
-            {
-              abi: 'Mint(address,uint,uint)',
-              accountIndex: 0,
-            },
-            {
-              abi: 'Transfer(address,address,uint)',
-              accountIndex: 1,
-            },
-          ],
-        }))
-      })
-    )
-  ).flat()
+  return pairAddresses.map((pairAddress) => ({
+    chainName: chain,
+    address: pairAddress,
+    events: [
+      {
+        abi: 'Mint(address,uint,uint)',
+        accountIndex: 0,
+      },
+      {
+        abi: 'Transfer(address,address,uint)',
+        accountIndex: 1,
+      },
+    ],
+  }))
 }
 
 export async function getUniswapPortfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {

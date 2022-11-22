@@ -28,8 +28,6 @@ const address = process.argv[3]
     })
   )
 
-  console.log(chains)
-
   const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
 
   const coins = await getCoins(
