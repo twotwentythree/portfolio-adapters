@@ -74,6 +74,7 @@ const address = process.argv[3]
       console.log(`${'Health factor:'.padEnd(61)} ${chainOutput.healthFactor}`)
     }
   })
+  console.log('')
 })()
 
 async function getCoins(ids: (string | string[])[][]): Promise<{

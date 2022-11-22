@@ -1,4 +1,5 @@
 import { api } from '@defillama/sdk'
+import { BigNumber } from 'ethers'
 
 const abi = require('./abi.json')
 const lens = require('./lens.json')
@@ -162,35 +163,25 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
             })
           ).output
 
-          const sumOfUnderlying = markets.reduce((sum, market) => {
-            const collateralFactor = metadata.find(
-              (metadata: { cToken: string }) => metadata.cToken === market.cToken
-            )?.collateralFactorMantissa
-            const underlyingPrice = underlyingPrices.find(
-              (metadata: { cToken: string }) => metadata.cToken === market.cToken
-            )?.underlyingPrice
-            const balanceOfUnderlying = borrowBalances.find(
-              (metadata: { cToken: string }) => metadata.cToken === market.cToken
-            )?.balanceOfUnderlying
-            const balance = balanceOfUnderlying * underlyingPrice * collateralFactor
-            return balance ? sum + balance : sum + 0
-          }, 0)
+          const sumOfUnderlying: BigNumber = markets.reduce((sum, _, index) => {
+            const collateralFactor = BigNumber.from(metadata[index]?.collateralFactorMantissa)
+            const underlyingPrice = BigNumber.from(underlyingPrices[index]?.underlyingPrice)
+            const balanceOfUnderlying = BigNumber.from(borrowBalances[index]?.balanceOfUnderlying)
+            const balance = balanceOfUnderlying.mul(underlyingPrice).mul(collateralFactor)
+            return balance ? sum.add(balance) : sum
+          }, BigNumber.from(0))
 
-          const sumOfBalance = markets.reduce((sum, market) => {
-            const underlyingPrice = underlyingPrices.find(
-              (metadata: { cToken: string }) => metadata.cToken === market.cToken
-            )?.underlyingPrice
-            const borrowBalance = borrowBalances.find(
-              (metadata: { cToken: string }) => metadata.cToken === market.cToken
-            )?.borrowBalance
-            const balance = borrowBalance * underlyingPrice
-            return balance ? sum + balance : sum + 0
-          }, 0)
+          const sumOfBalance: BigNumber = markets.reduce((sum, _, index) => {
+            const underlyingPrice = BigNumber.from(underlyingPrices[index]?.underlyingPrice)
+            const borrowBalance = BigNumber.from(borrowBalances[index]?.borrowBalanceCurrent)
+            const balance = borrowBalance.mul(underlyingPrice)
+            return balance ? sum.add(balance) : sum
+          }, BigNumber.from(0))
 
           if (!sumOfBalance || !sumOfUnderlying) {
-            return 0
+            return BigNumber.from(0).toString()
           }
-          return sumOfUnderlying / sumOfBalance
+          return sumOfUnderlying.div(sumOfBalance).toString()
         })(),
       }
     })
