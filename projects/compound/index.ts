@@ -179,9 +179,10 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
           }, BigNumber.from(0))
 
           if (!sumOfBalance || !sumOfUnderlying) {
-            return BigNumber.from(0).toString()
+            return 0
           }
-          return sumOfUnderlying.div(sumOfBalance).toString()
+          const healthFactor = Number((sumOfUnderlying.div(sumOfBalance).toBigInt() * 100n) / BigInt(1e18)) / 100
+          return healthFactor
         })(),
       }
     })
