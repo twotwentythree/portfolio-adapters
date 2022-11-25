@@ -25,10 +25,7 @@ export type GetPorfolioChainParam = {
 export type GetPorfolioReturns = {
   chainName: Chain
   supplied: Token[] | Token[][]
-  borrowed?: {
-    address: string
-    balance: string
-  }[]
+  borrowed?: Token[]
   healthFactor?: number
 }[]
 
