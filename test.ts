@@ -55,10 +55,25 @@ const address = process.argv[3]
       })
     })
 
-    console.log(`\n${'Total:'.padEnd(61)} $${humanizeNumber(total)}`)
-  })
+    console.log('\nBorrowed:')
 
-  console.log('')
+    if (chainOutput.borrowed) {
+      chainOutput.borrowed.forEach((borrowed) => {
+        if (borrowed.balance !== '0') {
+          const coin = coins[`${chainOutput.chainName}:${borrowed.address}`]
+          const balance = Number(borrowed.balance) / 10 ** coin.decimals
+          const value = balance * coin.price
+          total -= value
+          console.log(`${coin.symbol.padEnd(30)} ${humanizeNumber(balance).padEnd(30)} $${humanizeNumber(value)}`)
+        }
+      })
+    }
+
+    console.log(`\n${'Total:'.padEnd(61)} $${humanizeNumber(total)}`)
+    if (chainOutput.healthFactor) {
+      console.log(`${'Health factor:'.padEnd(61)} ${chainOutput.healthFactor}`)
+    }
+  })
 })()
 
 async function getCoins(ids: (string | string[])[][]): Promise<{

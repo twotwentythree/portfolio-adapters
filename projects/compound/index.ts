@@ -1,6 +1,8 @@
 import { api } from '@defillama/sdk'
+import { BigNumber } from 'ethers'
 
 const abi = require('./abi.json')
+const lens = require('./lens.json')
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
@@ -67,6 +69,8 @@ const markets = [
   },
 ]
 
+const lensAddress = '0xdCbDb7306c6Ff46f77B349188dC18cEd9DF30299'
+
 // Used to get all accounts that have used certain contracts
 // List all deposit/transfer actions
 export function getEvents(): GetEventsReturns {
@@ -81,6 +85,10 @@ export function getEvents(): GetEventsReturns {
       {
         abi: 'Transfer(address,address,uint256)',
         accountIndex: 1,
+      },
+      {
+        abi: 'Borrow(address,uint256,uint256,uint256)',
+        accountIndex: 0,
       },
     ],
   }))
@@ -115,6 +123,69 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
             }
           })
         ),
+        borrowed: await Promise.all(
+          markets.map(async (market) => {
+            const balance = (
+              await api.abi.call({
+                target: lensAddress,
+                abi: lens['cTokenBalances'],
+                params: [market.cToken, account],
+              })
+            ).output.borrowBalanceCurrent
+
+            return {
+              address: market.underlying,
+              balance: balance,
+            }
+          })
+        ),
+        healthFactor: await (async () => {
+          const metadata = (
+            await api.abi.call({
+              target: lensAddress,
+              abi: lens['cTokenMetadataAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken)],
+            })
+          ).output
+          const underlyingPrices = (
+            await api.abi.call({
+              target: lensAddress,
+              abi: lens['cTokenUnderlyingPriceAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken)],
+            })
+          ).output
+          const borrowBalances = (
+            await api.abi.call({
+              target: lensAddress,
+              abi: lens['cTokenBalancesAll'],
+              // @ts-ignore
+              params: [markets.map((m) => m.cToken), account],
+            })
+          ).output
+
+          const sumOfUnderlying: BigNumber = markets.reduce((sum, _, index) => {
+            const collateralFactor = BigNumber.from(metadata[index]?.collateralFactorMantissa)
+            const underlyingPrice = BigNumber.from(underlyingPrices[index]?.underlyingPrice)
+            const balanceOfUnderlying = BigNumber.from(borrowBalances[index]?.balanceOfUnderlying)
+            const balance = balanceOfUnderlying.mul(underlyingPrice).mul(collateralFactor)
+            return balance ? sum.add(balance) : sum
+          }, BigNumber.from(0))
+
+          const sumOfBalance: BigNumber = markets.reduce((sum, _, index) => {
+            const underlyingPrice = BigNumber.from(underlyingPrices[index]?.underlyingPrice)
+            const borrowBalance = BigNumber.from(borrowBalances[index]?.borrowBalanceCurrent)
+            const balance = borrowBalance.mul(underlyingPrice)
+            return balance ? sum.add(balance) : sum
+          }, BigNumber.from(0))
+
+          if (!sumOfBalance || !sumOfUnderlying) {
+            return 0
+          }
+          const healthFactor = Number((sumOfUnderlying.div(sumOfBalance).toBigInt() * 100n) / BigInt(1e18)) / 100
+          return healthFactor
+        })(),
       }
     })
   )

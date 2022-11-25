@@ -23,7 +23,7 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
 ## Testing adapters
 
 ```
-yarn test-porfolio <project> <user address>
+yarn test-portfolio <project> <user address>
 ```
 
 ## Changing RPC providers

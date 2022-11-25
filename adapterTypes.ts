@@ -1,4 +1,5 @@
 import type { Chain } from '@defillama/sdk/build/general'
+import { BigNumber } from 'ethers'
 
 type Token = {
   address: string
@@ -24,6 +25,8 @@ export type GetPorfolioChainParam = {
 export type GetPorfolioReturns = {
   chainName: Chain
   supplied: Token[] | Token[][]
+  borrowed?: Token[]
+  healthFactor?: number
 }[]
 
 export type GetPorfolio = (chains: GetPorfolioChainParam, account: string) => GetPorfolioReturns

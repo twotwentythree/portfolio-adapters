@@ -5,7 +5,7 @@
   "repository": "git@github.com:twotwentythree/portfolio-adapters.git",
   "license": "MIT",
   "scripts": {
-    "test-porfolio": "ts-node ./test.ts",
+    "test-portfolio": "ts-node ./test.ts",
     "prepare": "husky install"
   },
   "devDependencies": {
