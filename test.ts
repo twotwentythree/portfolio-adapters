@@ -55,9 +55,9 @@ const address = process.argv[3]
       })
     })
 
-    console.log('\nBorrowed:')
+    if (chainOutput.borrowed && chainOutput.borrowed.length > 0) {
+      console.log('\nBorrowed:')
 
-    if (chainOutput.borrowed) {
       chainOutput.borrowed.forEach((borrowed) => {
         if (borrowed.balance !== '0') {
           const coin = coins[`${chainOutput.chainName}:${borrowed.address}`]
@@ -73,6 +73,8 @@ const address = process.argv[3]
     if (chainOutput.healthFactor) {
       console.log(`${'Health factor:'.padEnd(61)} ${chainOutput.healthFactor}`)
     }
+
+    console.log('')
   })
 })()
 

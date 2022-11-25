@@ -180,7 +180,7 @@ export function getPorfolio(chains: GetPorfolioChainParam, account: string): Pro
             return balance ? sum.add(balance) : sum
           }, BigNumber.from(0))
 
-          if (!sumOfBalance || !sumOfUnderlying) {
+          if (sumOfBalance.eq(0) || sumOfUnderlying.eq(0)) {
             return 0
           }
           const healthFactor = Number((sumOfUnderlying.div(sumOfBalance).toBigInt() * 100n) / BigInt(1e18)) / 100
