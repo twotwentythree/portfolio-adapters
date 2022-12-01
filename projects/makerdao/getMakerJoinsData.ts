@@ -1,13 +1,13 @@
 import { mainnetAddresses } from './mainnetAddresses'
 
-type MakerVault = {
-  symbol: string
+type MakerJoinData = {
+  join: string
+  gemSymbol: string
   gem: string
   ilk: string
-  join: string
 }
 
-export default function getMakerVaults(): MakerVault[] {
+export default function getMakerJoinsData(): MakerJoinData[] {
   const gems = Object.keys(mainnetAddresses)
     .filter((key) => key.includes('PIP_'))
     .map((key) => {
@@ -20,13 +20,13 @@ export default function getMakerVaults(): MakerVault[] {
     })
     .concat(['MCD_DAI']) as (keyof typeof mainnetAddresses | undefined)[]
 
-  const vaults: MakerVault[] = []
+  const joins: MakerJoinData[] = []
 
   for (const gem of gems) {
     if (!gem) continue
     if (gem === 'MCD_DAI') {
-      vaults.push({
-        symbol: 'DAI',
+      joins.push({
+        gemSymbol: 'DAI',
         gem: mainnetAddresses[gem],
         ilk: 'DAI',
         join: mainnetAddresses.MCD_JOIN_DAI,
@@ -42,14 +42,14 @@ export default function getMakerVaults(): MakerVault[] {
       const joinSplit = join.split('_')
       const ilk = joinSplit.slice(joinSplit.length - 2).join('-')
 
-      vaults.push({
-        symbol: gem === 'ETH' ? 'WETH' : gem,
+      joins.push({
+        join: mainnetAddresses[join],
+        gemSymbol: gem === 'ETH' ? 'WETH' : gem,
         gem: mainnetAddresses[gem],
         ilk,
-        join: mainnetAddresses[join],
       })
     }
   }
 
-  return vaults
+  return joins
 }
