@@ -140,12 +140,6 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
         })
       }
 
-      // had to add this because user does not borrow gem but DAI
-      supplied.push({
-        address: DAI,
-        balance: '0',
-      })
-
       return {
         chainName: chain.chainName,
         supplied,
