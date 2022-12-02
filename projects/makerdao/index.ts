@@ -1,10 +1,4 @@
-import type {
-  GetAccountsReturns,
-  GetEventsReturns,
-  GetPorfolioChainParam,
-  GetPorfolioReturns,
-  Token,
-} from '../../adapterTypes'
+import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns, Token } from '../../adapterTypes'
 import { mainnetAddresses } from './mainnetAddresses'
 import getMakerJoinsData from './getMakerJoinsData'
 import { api } from '@defillama/sdk'
@@ -24,14 +18,6 @@ const ILK_REGISTRY = mainnetAddresses.ILK_REGISTRY
 const CDP_MANAGER = mainnetAddresses.CDP_MANAGER
 const GET_CDPS = mainnetAddresses.GET_CDPS
 
-// TODO
-/*
-  join
-  exit
-  cdp created
-
-  basically all meaningful events from the contracts used in getPortfolio
-*/
 export function getEvents(): GetEventsReturns {
   const events: GetEventsReturns = [
     {
@@ -40,6 +26,16 @@ export function getEvents(): GetEventsReturns {
       events: [
         {
           abi: 'NewCdp(address,address,uint256)',
+          accountIndex: 1,
+        },
+      ],
+    },
+    {
+      chainName: 'ethereum',
+      address: DAI,
+      events: [
+        {
+          abi: 'Transfer(address,address,uint256)',
           accountIndex: 1,
         },
       ],
@@ -66,9 +62,9 @@ export function getEvents(): GetEventsReturns {
   return events
 }
 
-export async function getAccounts(): Promise<GetAccountsReturns> {
-  return []
-}
+// export async function getAccounts(): Promise<GetAccountsReturns> {
+//   return []
+// }
 
 const RAY = BigNumber.from(10).pow(27)
 
