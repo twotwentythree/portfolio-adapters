@@ -115,9 +115,21 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
           })
         ).output as string
 
+        const decimals = (
+          await api.abi.call({
+            target: gem,
+            abi: 'erc20:decimals',
+          })
+        ).output as string
+
+        // We need to convert the ink to the correct decimals because Maker stores them in 18 decimals
+        const formattedInk = BigNumber.from(ink)
+          .div(BigNumber.from(10).pow(18 - parseInt(decimals)))
+          .toString()
+
         supplied.push({
           address: gem,
-          balance: ink,
+          balance: formattedInk,
         })
 
         const borrowedBalance = BigNumber.from(art).mul(BigNumber.from(ilk.rate)).div(RAY).toString()
