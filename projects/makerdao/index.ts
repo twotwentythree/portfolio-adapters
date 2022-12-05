@@ -69,82 +69,106 @@ export function getEvents(): GetEventsReturns {
 const RAY = BigNumber.from(10).pow(27)
 
 export async function getPorfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {
-  return Promise.all(
-    chains.map(async (chain) => {
-      const proxy = (
-        await api.abi.call({
-          target: PROXY_REGISTRY,
-          abi: ProxyRegistry['proxies'],
-          params: [account],
-        })
-      ).output
+  const vaults: GetPorfolioReturns = []
 
-      const { ids, urns, ilks } = (
-        await api.abi.call({
-          target: GET_CDPS,
-          abi: GetCdps['getCdpsAsc'],
-          params: [CDP_MANAGER, proxy],
-        })
-      ).output
+  for (const chain of chains) {
+    const proxy = (
+      await api.abi.call({
+        target: PROXY_REGISTRY,
+        abi: ProxyRegistry['proxies'],
+        params: [account],
+      })
+    ).output
 
-      const supplied: Token[] = []
-      const borrowed: Token[] = []
+    const { ids, urns, ilks } = (
+      await api.abi.call({
+        target: GET_CDPS,
+        abi: GetCdps['getCdpsAsc'],
+        params: [CDP_MANAGER, proxy],
+      })
+    ).output as { ids: string[]; urns: string[]; ilks: string[] }
 
-      for (let i = 0; i < ids.length; i++) {
-        const { ink, art }: { ink: string; art: string } = (
-          await api.abi.call({
-            target: VAT,
-            abi: Vat['urns'],
-            params: [ilks[i], urns[i]],
-          })
-        ).output
-
-        const ilk = (
-          await api.abi.call({
-            target: VAT,
-            abi: Vat['ilks'],
-            params: [ilks[i]],
-          })
-        ).output
-
-        const gem = (
-          await api.abi.call({
-            target: ILK_REGISTRY,
-            abi: IlkRegistry['gem'],
-            params: [ilks[i]],
-          })
-        ).output as string
-
-        const decimals = (
-          await api.abi.call({
-            target: gem,
-            abi: 'erc20:decimals',
-          })
-        ).output as string
-
-        // We need to convert the ink to the correct decimals because Maker stores them in 18 decimals
-        const formattedInk = BigNumber.from(ink)
-          .div(BigNumber.from(10).pow(18 - parseInt(decimals)))
-          .toString()
-
-        supplied.push({
-          address: gem,
-          balance: formattedInk,
-        })
-
-        const borrowedBalance = BigNumber.from(art).mul(BigNumber.from(ilk.rate)).div(RAY).toString()
-
-        borrowed.push({
-          address: DAI,
-          balance: borrowedBalance,
-        })
-      }
-
-      return {
+    if (ids.length === 0) {
+      vaults.push({
         chainName: chain.chainName,
-        supplied,
-        borrowed,
+        supplied: [],
+        borrowed: [],
+      })
+
+      continue
+    }
+
+    for (let i = 0; i < ids.length; i++) {
+      let vault: GetPorfolioReturns[0] = {
+        chainName: chain.chainName,
+        supplied: [],
       }
-    })
-  )
+
+      const { ink, art }: { ink: string; art: string } = (
+        await api.abi.call({
+          target: VAT,
+          abi: Vat['urns'],
+          params: [ilks[i], urns[i]],
+        })
+      ).output
+
+      const ilk = (
+        await api.abi.call({
+          target: VAT,
+          abi: Vat['ilks'],
+          params: [ilks[i]],
+        })
+      ).output
+
+      const gem = (
+        await api.abi.call({
+          target: ILK_REGISTRY,
+          abi: IlkRegistry['gem'],
+          params: [ilks[i]],
+        })
+      ).output as string
+
+      const decimals = (
+        await api.abi.call({
+          target: gem,
+          abi: 'erc20:decimals',
+        })
+      ).output as string
+
+      // We need to convert the ink to the correct decimals because Maker stores them in 18 decimals
+      const formattedInk = BigNumber.from(ink)
+        .div(BigNumber.from(10).pow(18 - parseInt(decimals)))
+        .toString()
+
+      if (formattedInk === '0') continue
+
+      vault.supplied.push({
+        address: gem,
+        balance: formattedInk,
+      } as Token & Token[])
+
+      const borrowedBalance = BigNumber.from(art).mul(BigNumber.from(ilk.rate)).div(RAY).toString()
+
+      vault.borrowed!.push({
+        address: DAI,
+        balance: borrowedBalance,
+      } as Token)
+
+      const suppliedVal = BigNumber.from(ink).mul(BigNumber.from(ilk.spot)).div(RAY)
+
+      const borrowedVal = BigNumber.from(art).mul(BigNumber.from(ilk.rate)).div(RAY)
+
+      var healthFactor = 0
+
+      if (suppliedVal.gt(0) && borrowedVal.gt(0)) {
+        healthFactor = suppliedVal.mul(100).div(borrowedVal).toNumber() / 100
+      }
+
+      vault.healthFactor = healthFactor
+
+      vaults.push(vault)
+    }
+  }
+
+  return Promise.all(vaults)
 }
