@@ -92,7 +92,6 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
       vaults.push({
         chainName: chain.chainName,
         supplied: [],
-        borrowed: [],
       })
 
       continue
@@ -102,6 +101,7 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
       let vault: GetPorfolioReturns[0] = {
         chainName: chain.chainName,
         supplied: [],
+        borrowed: [],
       }
 
       const { ink, art }: { ink: string; art: string } = (
