@@ -31,11 +31,15 @@ const address = process.argv[3]
   const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
 
   const coins = await getCoins(
-    chainOutputs.map((x) =>
-      x.supplied.map((y) =>
+    chainOutputs.map((x) => {
+      const suppliedIds = x.supplied.map((y) =>
         Array.isArray(y) ? y.map((z) => `${x.chainName}:${z.address}`) : `${x.chainName}:${y.address}`
       )
-    )
+
+      const borrowedIds = x.borrowed?.map((y) => `${x.chainName}:${y.address}`) ?? []
+
+      return suppliedIds.concat(borrowedIds.filter((x) => !suppliedIds.includes(x)))
+    })
   )
 
   chainOutputs.forEach((chainOutput) => {

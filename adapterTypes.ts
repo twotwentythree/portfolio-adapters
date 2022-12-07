@@ -1,7 +1,7 @@
 import type { Chain } from '@defillama/sdk/build/general'
 import { BigNumber } from 'ethers'
 
-type Token = {
+export type Token = {
   address: string
   balance: string
 }
