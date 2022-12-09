@@ -124,7 +124,9 @@ const address = process.argv[3]
       })
     }
 
-    console.log(`\n${'Total:'.padEnd(61)} $${humanizeNumber(total)}`)
+    console.log(
+      `\n${'Total:'.padEnd(61)} $${total < 0 ? '-' + humanizeNumber(Math.abs(total)) : humanizeNumber(total)}`
+    )
     if (chainOutput.healthFactor) {
       console.log(`${'Health factor:'.padEnd(61)} ${chainOutput.healthFactor}`)
     }
