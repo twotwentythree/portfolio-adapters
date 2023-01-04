@@ -1,6 +1,5 @@
 import { api } from '@defillama/sdk'
-import { Chain } from '@defillama/sdk/build/general'
-import BigNumber from 'bignumber.js'
+const abi = require('./abi.json')
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
@@ -27,5 +26,24 @@ export async function getEvents(): Promise<GetEventsReturns> {
 }
 
 export async function getPorfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {
-  return []
+  return Promise.all(
+    chains.map(async (chain) => {
+      return {
+        chainName: chain.chainName,
+        supplied: await Promise.all(
+          chain.addresses.map(async (address) => {
+            const stake = (
+              await api.abi.call({
+                target: address,
+                abi: abi.find((obj: { name: string }) => obj.name === 'getStake'),
+                params: [account],
+              })
+            ).output
+
+            return stake
+          })
+        ),
+      }
+    })
+  )
 }
