@@ -1,0 +1,31 @@
+import { api } from '@defillama/sdk'
+import { Chain } from '@defillama/sdk/build/general'
+import BigNumber from 'bignumber.js'
+
+import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
+
+// export async function getUniswapEvents(chain: Chain, factory: string): Promise<GetEventsReturns> {}
+
+const factory = '0x9828b1b34ce2f6337c47cd29ae3e25dfc2cc6e82'
+export async function getEvents(): Promise<GetEventsReturns> {
+  return [
+    {
+      chainName: 'ethereum',
+      address: factory,
+      events: [
+        {
+          abi: 'Migrated(address,uint256,uint256,uint256,bytes)',
+          accountIndex: 0,
+        },
+        {
+          abi: 'Staked(address,uint256,uint256)',
+          accountIndex: 0,
+        },
+      ],
+    },
+  ]
+}
+
+export async function getPorfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {
+  return []
+}
