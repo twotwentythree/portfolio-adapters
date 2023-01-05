@@ -35,14 +35,6 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
         chainName: chain.chainName,
         supplied: await Promise.all(
           chain.addresses.map(async (address) => {
-            const stakedTotal = (
-              await api.abi.call({
-                target: address,
-                abi: abi.find((obj: { name: string }) => obj.name === 'stakedTotal'),
-                params: [account],
-              })
-            ).output
-
             const apeCoinStake = (
               await api.abi.call({
                 target: address,
