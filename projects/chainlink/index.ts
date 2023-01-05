@@ -5,7 +5,6 @@ import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from
 
 // export async function getUniswapEvents(chain: Chain, factory: string): Promise<GetEventsReturns> {}
 
-const factory = '0x9828b1b34ce2f6337c47cd29ae3e25dfc2cc6e82'
 const contractAddress = '0x3feB1e09b4bb0E7f0387CeE092a52e85797ab889'
 
 export async function getEvents(): Promise<GetEventsReturns> {
@@ -42,7 +41,12 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
               })
             ).output
 
-            return stake
+            return [
+              {
+                address: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
+                balance: stake,
+              },
+            ]
           })
         ),
       }
