@@ -43,10 +43,56 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
               })
             ).output
 
+            const apeCoinStake = (
+              await api.abi.call({
+                target: address,
+                abi: abi.find((obj: { name: string }) => obj.name === 'getApeCoinStake'),
+                params: [account],
+              })
+            ).output
+
+            const baycStakes = (
+              await api.abi.call({
+                target: address,
+                abi: abi.find((obj: { name: string }) => obj.name === 'getBaycStakes'),
+                params: [account],
+              })
+            ).output
+
+            const maycStakes = (
+              await api.abi.call({
+                target: address,
+                abi: abi.find((obj: { name: string }) => obj.name === 'getMaycStakes'),
+                params: [account],
+              })
+            ).output
+
+            const bakcStakes = (
+              await api.abi.call({
+                target: address,
+                abi: abi.find((obj: { name: string }) => obj.name === 'getBakcStakes'),
+                params: [account],
+              })
+            ).output
+
+            console.log(baycStakes)
+
             return [
               {
-                address: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
-                balance: stakedTotal,
+                address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
+                balance: apeCoinStake.deposited,
+              },
+              {
+                address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
+                balance: baycStakes.deposited,
+              },
+              {
+                address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
+                balance: maycStakes.deposited,
+              },
+              {
+                address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
+                balance: bakcStakes.deposited,
               },
             ]
           })
