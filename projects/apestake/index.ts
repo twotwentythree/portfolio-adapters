@@ -75,8 +75,6 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
               })
             ).output
 
-            console.log(baycStakes)
-
             return [
               {
                 address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
@@ -84,15 +82,15 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
               },
               {
                 address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
-                balance: baycStakes.deposited,
+                balance: baycStakes.reduce((acc: any, s: { deposited: any }) => acc + Number(s.deposited), 0),
               },
               {
                 address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
-                balance: maycStakes.deposited,
+                balance: maycStakes.reduce((acc: any, s: { deposited: any }) => acc + Number(s.deposited), 0),
               },
               {
                 address: '0x4d224452801ACEd8B2F0aebE155379bb5D594381',
-                balance: bakcStakes.deposited,
+                balance: bakcStakes.reduce((acc: any, s: { deposited: any }) => acc + Number(s.deposited), 0),
               },
             ]
           })
