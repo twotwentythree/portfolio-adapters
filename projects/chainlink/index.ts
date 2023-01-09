@@ -3,8 +3,6 @@ const abi = require('./abi.json')
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
-// export async function getUniswapEvents(chain: Chain, factory: string): Promise<GetEventsReturns> {}
-
 const contractAddress = '0x3feB1e09b4bb0E7f0387CeE092a52e85797ab889'
 
 export async function getEvents(): Promise<GetEventsReturns> {
