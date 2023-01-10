@@ -30,7 +30,7 @@ export async function getPorfolio(chains: GetPorfolioChainParam, account: string
             const stake = (
               await api.abi.call({
                 target: address,
-                abi: abi.find((obj: { name: string }) => obj.name === 'earned'),
+                abi: abi.find((obj: { name: string }) => obj.name === 'balanceOf'),
                 params: [account],
               })
             ).output
