@@ -1,23 +1,22 @@
 import { api } from '@defillama/sdk'
 const abi = require('./abi.json')
+const vaults = require('./vaults.json')
 
 import type { GetEventsReturns, GetPorfolioChainParam, GetPorfolioReturns } from '../../adapterTypes'
 
 const stakingAddress = '0xBa37B002AbaFDd8E89a1995dA52740bbC013D992'
 
 export async function getEvents(): Promise<GetEventsReturns> {
-  return [
-    {
-      chainName: 'ethereum',
-      address: stakingAddress,
-      events: [
-        {
-          abi: 'Staked(address,uint256)',
-          accountIndex: 0,
-        },
-      ],
-    },
-  ]
+  return vaults.map((v: { address: any; symbol: any }) => ({
+    chainName: v.symbol,
+    address: v.address,
+    events: [
+      {
+        abi: 'Staked(address,uint256)',
+        accountIndex: 0,
+      },
+    ],
+  }))
 }
 
 export async function getPorfolio(chains: GetPorfolioChainParam, account: string): Promise<GetPorfolioReturns> {
