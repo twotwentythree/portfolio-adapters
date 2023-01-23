@@ -1,20 +1,71 @@
 import 'dotenv/config'
 
 import _ from 'lodash'
-import got from 'got'
 import { humanizeNumber } from '@defillama/sdk/build/computeTVL/humanizeNumber'
-import { abi } from '@defillama/sdk/build/api'
-import { Chain } from '@defillama/sdk/build/general'
 
-import { GetEventsReturns, GetPorfolioReturns, GetPorfolioChainParam } from './adapterTypes'
+import { GetEventsReturns, GetPorfolioReturns, GetPorfolioChainParam, ParseEventsReturns } from './adapterTypes'
+import getCoins from './utils/getCoins'
+import type { Log } from '@ethersproject/abstract-provider'
+import { utils } from 'ethers'
+import { getProvider } from '@defillama/sdk/build/general'
 
 const project = process.argv[2]
 const address = process.argv[3]
 
 ;(async () => {
   const adapter = await import(`./projects/${project}`)
+  let parseEvents: any
+
+  try {
+    parseEvents = await import(`./projects/${project}/parseEvents`)
+  } catch (e) {
+    console.log('No parseEvents')
+  }
 
   const events: GetEventsReturns = await adapter.getEvents()
+
+  const parsedEventsPromises: Promise<ParseEventsReturns>[] = []
+
+  if (parseEvents) {
+    const logsPromises = events.map(async (contract) => {
+      const provider = getProvider(contract.chainName)
+      const address = contract.address === '*' ? undefined : contract.address
+      const currentBlock = await provider.getBlockNumber()
+
+      const finishedLogs: Promise<Log[]>[] = []
+      const logsToParse: Promise<Log[]>[] = []
+
+      contract.events.forEach((e) => {
+        for (let i = contract.startBlock ?? 0; i < currentBlock; i += 10000) {
+          const rawLogs = provider.getLogs({
+            fromBlock: i,
+            toBlock: i + 10000,
+            address,
+            topics: [utils.id(e.abi)],
+          })
+
+          if (e.shouldParse) logsToParse.push(rawLogs)
+          else finishedLogs.push(rawLogs)
+        }
+      })
+
+      return {
+        chainName: contract.chainName,
+        finishedLogs: (await Promise.all(finishedLogs)).flat(),
+        logsToParse: (await Promise.all(logsToParse)).flat(),
+      }
+    })
+
+    const logs = await Promise.all(logsPromises)
+
+    logs.forEach((log) => {
+      parsedEventsPromises.push(
+        parseEvents.default(log.chainName, log.logsToParse, address) as Promise<ParseEventsReturns>
+      )
+    })
+  }
+
+  const parsedEvents = await Promise.all(parsedEventsPromises)
 
   // TODO
   // if (address == undefined) {
@@ -28,7 +79,7 @@ const address = process.argv[3]
     })
   )
 
-  const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address)
+  const chainOutputs: GetPorfolioReturns = await adapter.getPorfolio(chains, address, parsedEvents)
 
   const coins = await getCoins(
     chainOutputs.map((x) => {
@@ -73,7 +124,9 @@ const address = process.argv[3]
       })
     }
 
-    console.log(`\n${'Total:'.padEnd(61)} $${humanizeNumber(total)}`)
+    console.log(
+      `\n${'Total:'.padEnd(61)} $${total < 0 ? '-' + humanizeNumber(Math.abs(total)) : humanizeNumber(total)}`
+    )
     if (chainOutput.healthFactor) {
       console.log(`${'Health factor:'.padEnd(61)} ${chainOutput.healthFactor}`)
     }
@@ -81,69 +134,3 @@ const address = process.argv[3]
     console.log('')
   })
 })()
-
-async function getCoins(ids: (string | string[])[][]): Promise<{
-  [key: string]: {
-    decimals: number
-    symbol: string
-    price: number
-    timestamp: number
-    confidence: number
-  }
-}> {
-  const uniqIds = _.uniq(_.flattenDeep(ids))
-
-  const coins = _.merge(
-    {},
-    ...(await Promise.all(
-      _.chunk(uniqIds, 100).map(async (ids) => {
-        const { coins } = await got(`https://coins.llama.fi/prices/current/${ids.join(',')}`).json<{
-          coins: {
-            [key: string]: {
-              decimals: number
-              symbol: string
-              price: number
-              timestamp: number
-              confidence: number
-            }
-          }
-        }>()
-
-        return coins
-      })
-    ))
-  )
-
-  const coinsNotFound = uniqIds.filter((id) => !coins[id])
-  await Promise.all(
-    coinsNotFound.map(async (coin) => {
-      const [chain, address] = coin.split(':')
-
-      const symbol = await (
-        await abi.call({
-          chain: chain as Chain,
-          target: address,
-          abi: 'erc20:symbol',
-        })
-      ).output
-
-      const decimals = await (
-        await abi.call({
-          chain: chain as Chain,
-          target: address,
-          abi: 'erc20:decimals',
-        })
-      ).output
-
-      coins[coin] = {
-        decimals,
-        symbol,
-        price: 0,
-        timestamp: Math.floor(new Date().getTime() / 1000),
-        confidence: 0,
-      }
-    })
-  )
-
-  return coins
-}

@@ -1,5 +1,4 @@
 import type { Chain } from '@defillama/sdk/build/general'
-import { BigNumber } from 'ethers'
 
 export type Token = {
   address: string
@@ -9,9 +8,11 @@ export type Token = {
 export type GetEventsReturns = {
   chainName: Chain
   address: string
+  startBlock?: number
   events: {
     abi: string
     accountIndex: number
+    shouldParse?: boolean
   }[]
 }[]
 
@@ -30,3 +31,8 @@ export type GetPorfolioReturns = {
 }[]
 
 export type GetPorfolio = (chains: GetPorfolioChainParam, account: string) => GetPorfolioReturns
+
+export type ParseEventsReturns = {
+  chainName: Chain
+  addresses: string[]
+}

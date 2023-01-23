@@ -1,0 +1,67 @@
+{
+  "borrower": {
+    "inputs": [],
+    "name": "borrower",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "borrower_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "collateral": {
+    "inputs": [],
+    "name": "collateral",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "collateral_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "collateralAsset": {
+    "inputs": [],
+    "name": "collateralAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "collateralAsset_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "fundsAsset": {
+    "inputs": [],
+    "name": "fundsAsset",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "fundsAsset_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  "principal": {
+    "inputs": [],
+    "name": "principal",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "principal_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+}
