@@ -11,6 +11,7 @@ export type GetEventsReturns = {
   address: string
   events: {
     abi: string
+    topicsLength?: number
     accountIndex: number
   }[]
 }[]
